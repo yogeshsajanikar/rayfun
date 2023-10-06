@@ -15,7 +15,7 @@ class Binder:
         self._bound = value
 
     @classmethod
-    def from_function(cls, func: callable) -> "Binder":
+    def from_function(cls, func) -> "Binder":
         """
         Create a binder from a function.
         """

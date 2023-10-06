@@ -44,6 +44,7 @@ plugins = [
   "returns.contrib.mypy.returns_plugin",
   "numpy.typing.mypy_plugin"
 ]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 pythonpath = [
