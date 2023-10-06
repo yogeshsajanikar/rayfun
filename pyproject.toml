@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "rayfun"
+version = "0.1.0"
+description = "A functional wrapper over ray"
+authors = ["Yogesh Sajanikar <yogesh_sajanikar@yahoo.com>"]
+readme = "README.md"
+license = "MIT"
+packages = [
+  { include = "rayfun", from = "src" }
+]
+
+[tool.poetry.group.dev.dependencies]
+pydot = "^1.4.2"
+hypothesis = "^6.87.2"
+pytest = "^7.4.2"
+mypy = "^1.5.1"
+black = "^23.9.1"
+coverage = "^7.3.2"
+
+[tool.semantic_release]
+branch = "main"
+version_variable = "src/rafun/__init__.py:__version__"
+
+[tool.poetry.dependencies]
+python = "^3.10, <3.13"
+numpy = "^1.26.0"
+ray = {extras = ["default"], version = "^2.7.0"}
+returns = "^0.22.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[tool.black]
+line-length = 88
+target-version = ['py310']
+include = '\.pyi?$'
+
