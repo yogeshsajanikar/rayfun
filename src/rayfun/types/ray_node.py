@@ -38,6 +38,20 @@ class RayNode(BaseContainer, SupportsKind1["RayNode", _T]):
         """
         ...
 
+    @abstractmethod
+    def __eq__(self, other: Any) -> bool:
+        """
+        Check if the node is equal to another node.
+        """
+        ...
+
+    @abstractmethod
+    def reduce(self) -> RayNode[_T]:
+        """
+        Reduce the node.
+        """
+        ...
+
 
 class RayObjectNode(RayNode[_T]):
     """
@@ -53,15 +67,24 @@ class RayObjectNode(RayNode[_T]):
         """
         return self
 
+    def reduce(self) -> RayNode[_T]:
+        return self
+
     def __eq__(self, other):
-        if isinstance(other, RayObjectNode):
-            return self._inner_value == other._inner_value
-        return False
+        reduced_other = other.reduce()
+        return self._inner_value == other._inner_value or ray.get(
+            self._inner_value
+        ) == ray.get(other._inner_value)
 
 
 class RayFinalFunctionNode(RayNode[_T]):
     def __init__(self, value: FunctionNode):
         super().__init__(value)
+
+    def __eq__(self, other):
+        reduced_other = other.reduce()
+        reduced_self = self.reduce()
+        return reduced_other == reduced_self
 
     def execute(self) -> RayNode[_T]:
         """
@@ -69,6 +92,9 @@ class RayFinalFunctionNode(RayNode[_T]):
         """
         ref: ObjectRef = self._inner_value.execute()
         return RayObjectNode[_T](ref)
+
+    def reduce(self) -> RayNode[_T]:
+        return self.execute()
 
 
 _RayFunctionNode = TypeVar("_RayFunctionNode", bound="RayFunctionNode")
@@ -98,6 +124,11 @@ class RayFunctionNode(RayNode[_T]):
     def __init__(self, value: RemoteFunction, binder: Binder):
         super().__init__((value, binder))
 
+    def __eq__(self, other):
+        reduced_other = other.reduce()
+        reduced_self = self.reduce()
+        return reduced_other == reduced_self
+
     def execute(self) -> RayNode[_T]:
         """
         Execute the node.
@@ -111,7 +142,14 @@ class RayFunctionNode(RayNode[_T]):
             return RayFinalFunctionNode(node)
 
         # If the function is not callable, raise an error
-        raise TypeError("The function is not callable")
+        return self
+
+    def reduce(self) -> RayNode[_T]:
+        if self.binder.callable():
+            func_node = self.execute()
+            return func_node.reduce()
+
+        raise RayContextError("The function is not callable, and cannot be reduced")
 
     # Till there are parameters to be bound, the function is not callable, and will return another `RayFunctionNode`.
     # Once all the parameters are bound, the function is callable, and will return a `RayExeFunctionNode`.

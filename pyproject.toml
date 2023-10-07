@@ -18,6 +18,7 @@ black = "^23.9.1"
 coverage = "^7.3.2"
 pytest-black = "^0.3.12"
 pytest-cov = "^4.1.0"
+pytest-html = "^4.0.2"
 
 [tool.semantic_release]
 branch = "main"
