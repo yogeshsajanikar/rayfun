@@ -71,6 +71,8 @@ class RayObjectNode(RayNode[_T]):
         return self
 
     def __eq__(self, other):
+        if not isinstance(other, RayNode):
+            return False
         reduced_other = other.reduce()
         return self._inner_value == other._inner_value or ray.get(
             self._inner_value
@@ -142,7 +144,7 @@ class RayFunctionNode(RayNode[_T]):
             return RayFinalFunctionNode(node)
 
         # If the function is not callable, raise an error
-        return self
+        raise TypeError("The function is not callable")
 
     def reduce(self) -> RayNode[_T]:
         if self.binder.callable():
