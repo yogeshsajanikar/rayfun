@@ -2,6 +2,7 @@
 
 from functools import partial
 from typing import Any
+from inspect import signature
 
 
 class Binder:
@@ -46,4 +47,6 @@ class Binder:
         """
         Check if the binder is complete and callable
         """
-        return len(self._bound.args) <= 0
+        sig = signature(self.func)
+        # If signature has no parameters, it is callable
+        return len(sig.parameters) <= 0

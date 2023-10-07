@@ -54,6 +54,12 @@ class RayFunctionNode(RayNode[_T]):
         super().__init__(value)
         self._inner_value = value
 
+    def apply(self, arg: _T1) -> _RayNodeType:
+        """
+        Apply an argument to the function.
+        """
+        return self.__class__(self._inner_value.remote(arg))
+
     def execute(self) -> _T:
         """
         Execute the node.
