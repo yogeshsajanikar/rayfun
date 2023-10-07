@@ -1,6 +1,8 @@
 # Copyright 2023 Yogesh Sajanikar
+from __future__ import annotations
+
 from abc import abstractmethod
-from typing import TypeVar, Any, Callable, overload
+from typing import TypeVar, Any, Callable, overload, cast
 
 import ray
 from ray import ObjectRef
@@ -44,7 +46,6 @@ class RayObjectNode(RayNode[_T]):
 
     def __init__(self, value: ObjectRef):
         super().__init__(value)
-        self._inner_value = value
 
     def execute(self) -> RayNode[_T]:
         """
@@ -52,11 +53,15 @@ class RayObjectNode(RayNode[_T]):
         """
         return self
 
+    def __eq__(self, other):
+        if isinstance(other, RayObjectNode):
+            return self._inner_value == other._inner_value
+        return False
+
 
 class RayFinalFunctionNode(RayNode[_T]):
     def __init__(self, value: FunctionNode):
         super().__init__(value)
-        self._inner_value = value
 
     def execute(self) -> RayNode[_T]:
         """
@@ -74,8 +79,6 @@ class RayFunctionNode(RayNode[_T]):
     The base class for all RayFunctionNode types.
     """
 
-    _binder: Binder
-
     @classmethod
     def from_remote_function(cls, value: RemoteFunction) -> "RayFunctionNode[_T]":
         """
@@ -84,24 +87,28 @@ class RayFunctionNode(RayNode[_T]):
         binder = Binder.from_function(value.remote)
         return RayFunctionNode(value, binder)
 
+    @property
+    def inner_func(self):
+        return self._inner_value[0]
+
+    @property
+    def binder(self):
+        return self._inner_value[1]
+
     def __init__(self, value: RemoteFunction, binder: Binder):
-        super().__init__(value)
-        self._binder = binder
+        super().__init__((value, binder))
 
     def execute(self) -> RayNode[_T]:
         """
         Execute the node.
         """
-        if self._binder.callable():
+        if self.binder.callable():
             # Get the arguments from the binder
-            args = self._binder.args
-            func_node: RemoteFunction = self._inner_value
+            args = self.binder.args
+            func_node: RemoteFunction = self.inner_func
             # bind the arguments to the function
             node = func_node.bind(*args)
-            # execute the function
-            ref: ObjectRef = node.execute()
-            # return the result as RayObjectNode
-            return RayObjectNode(ref)
+            return RayFinalFunctionNode(node)
 
         # If the function is not callable, raise an error
         raise TypeError("The function is not callable")
@@ -129,14 +136,14 @@ class RayFunctionNode(RayNode[_T]):
 
     def apply_arg(self, arg):
         # check if the function is callable
-        if self._binder.callable():
+        if self.binder.callable():
             # If the function is callable, raise an error
             raise TypeError("The function is callable")
 
         # bind the argument to the function
-        new_binder = self._binder.bind(arg._inner_value)
+        new_binder = self.binder.bind(arg._inner_value)
         # create a new function node
-        return RayFunctionNode(self._inner_value, new_binder)
+        return RayFunctionNode(self.inner_func, new_binder)
 
 
 _U = TypeVar("_U")
@@ -197,17 +204,16 @@ class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Applicative1[_T
 
     def apply(self, container):
         # Check if wrapped value of the container is a subclass of RayFunctionNode
-        if not issubclass(container.wrapped, RayFunctionNode):
+        if not isinstance(container.wrapped, RayFunctionNode):
             raise RayContextError(
                 "A RayFunctionNode is expected for applying to a RayContext"
             )
 
         # Get the wrapped value of the container
         self_wrap = self.wrapped
-
-        if issubclass(container.wrapped, RayFunctionNode):
-            return self._apply_context(container)
-        raise NotImplementedError
+        func_node = cast(RayFunctionNode, container.wrapped)
+        applied_func = func_node.apply_arg(self_wrap)
+        return RayContext(applied_func)
 
     def map(self, function: Callable[[_T], _U]) -> "RayContext[_U]":
         """
