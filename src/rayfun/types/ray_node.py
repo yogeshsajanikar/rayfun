@@ -74,9 +74,9 @@ class RayObjectNode(RayNode[_T]):
         if not isinstance(other, RayNode):
             return False
         reduced_other = other.reduce()
-        return self._inner_value == other._inner_value or ray.get(
+        return self._inner_value == reduced_other._inner_value or ray.get(
             self._inner_value
-        ) == ray.get(other._inner_value)
+        ) == ray.get(reduced_other._inner_value)
 
 
 class RayFinalFunctionNode(RayNode[_T]):
@@ -226,6 +226,11 @@ class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Applicative1[_T
 
     def __init__(self, value: RayNode[_T]):
         super().__init__(value)
+
+    def __eq__(self, other):
+        if not isinstance(other, RayContext):
+            return False
+        return self._inner_value == other._inner_value
 
     @overload
     def apply(
