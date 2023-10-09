@@ -49,4 +49,20 @@ class Binder:
         """
         sig = signature(self.func)
         # If signature has no parameters, it is callable
-        return len(sig.parameters) <= 0
+        if len(sig.parameters) <= 0:
+            return True
+
+        # We have arguments, check if the arguments are variable arguments
+        params = [param for param in sig.parameters.values()]
+        if params[0].kind == params[0].VAR_POSITIONAL:
+            return True
+
+        return False
+
+    def bindable(self) -> bool:
+        """
+        Check if the binder is bindable
+        """
+        sig = signature(self.func)
+        # If signature has no parameters, it is callable
+        return len(sig.parameters) > 0

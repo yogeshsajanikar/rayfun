@@ -39,16 +39,17 @@ class RayNode(BaseContainer, SupportsKind1["RayNode", _T]):
         ...
 
     @abstractmethod
-    def __eq__(self, other: Any) -> bool:
-        """
-        Check if the node is equal to another node.
-        """
-        ...
-
-    @abstractmethod
     def reduce(self) -> RayNode[_T]:
         """
         Reduce the node.
+        """
+        ...
+
+    @property
+    @abstractmethod
+    def wrapped(self) -> Any:
+        """
+        Returns the wrapped value.
         """
         ...
 
@@ -70,23 +71,30 @@ class RayObjectNode(RayNode[_T]):
     def reduce(self) -> RayNode[_T]:
         return self
 
-    def __eq__(self, other):
-        if not isinstance(other, RayNode):
-            return False
-        reduced_other = other.reduce()
-        return self._inner_value == reduced_other._inner_value or ray.get(
-            self._inner_value
-        ) == ray.get(reduced_other._inner_value)
+    # def __eq__(self, other):
+    #     if not isinstance(other, RayNode):
+    #         return False
+    #     reduced_other = other.reduce()
+    #     return self._inner_value == reduced_other._inner_value or ray.get(
+    #         self._inner_value
+    #     ) == ray.get(reduced_other._inner_value)
+
+    @property
+    def wrapped(self) -> ObjectRef:
+        """
+        Returns the wrapped value.
+        """
+        return self._inner_value
 
 
 class RayFinalFunctionNode(RayNode[_T]):
     def __init__(self, value: FunctionNode):
         super().__init__(value)
 
-    def __eq__(self, other):
-        reduced_other = other.reduce()
-        reduced_self = self.reduce()
-        return reduced_other == reduced_self
+    # def __eq__(self, other):
+    #     reduced_other = other.reduce()
+    #     reduced_self = self.reduce()
+    #     return reduced_other == reduced_self
 
     def execute(self) -> RayNode[_T]:
         """
@@ -97,6 +105,13 @@ class RayFinalFunctionNode(RayNode[_T]):
 
     def reduce(self) -> RayNode[_T]:
         return self.execute()
+
+    @property
+    def wrapped(self) -> FunctionNode:
+        """
+        Returns the wrapped value.
+        """
+        return self._inner_value
 
 
 _RayFunctionNode = TypeVar("_RayFunctionNode", bound="RayFunctionNode")
@@ -126,10 +141,17 @@ class RayFunctionNode(RayNode[_T]):
     def __init__(self, value: RemoteFunction, binder: Binder):
         super().__init__((value, binder))
 
-    def __eq__(self, other):
-        reduced_other = other.reduce()
-        reduced_self = self.reduce()
-        return reduced_other == reduced_self
+    # def __eq__(self, other):
+    #     reduced_other = other.reduce()
+    #     reduced_self = self.reduce()
+    #     return reduced_other == reduced_self
+
+    @property
+    def wrapped(self) -> RemoteFunction:
+        """
+        Returns the wrapped value.
+        """
+        return self._inner_value[0]
 
     def execute(self) -> RayNode[_T]:
         """
@@ -176,12 +198,12 @@ class RayFunctionNode(RayNode[_T]):
 
     def apply_arg(self, arg):
         # check if the function is callable
-        if self.binder.callable():
+        if not self.binder.bindable():
             # If the function is callable, raise an error
             raise TypeError("The function is callable")
 
         # bind the argument to the function
-        new_binder = self.binder.bind(arg._inner_value)
+        new_binder = self.binder.bind(arg.wrapped)
         # create a new function node
         return RayFunctionNode(self.inner_func, new_binder)
 
@@ -227,10 +249,10 @@ class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Applicative1[_T
     def __init__(self, value: RayNode[_T]):
         super().__init__(value)
 
-    def __eq__(self, other):
-        if not isinstance(other, RayContext):
-            return False
-        return self._inner_value == other._inner_value
+    # def __eq__(self, other):
+    #     if not isinstance(other, RayContext):
+    #         return False
+    #     return self._inner_value == other._inner_value
 
     @overload
     def apply(
@@ -258,7 +280,7 @@ class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Applicative1[_T
         self_wrap = self.wrapped
         func_node = cast(RayFunctionNode, container.wrapped)
         applied_func = func_node.apply_arg(self_wrap)
-        return RayContext(applied_func)
+        return RayContext(applied_func.execute())
 
     def map(self, function: Callable[[_T], _U]) -> "RayContext[_U]":
         """

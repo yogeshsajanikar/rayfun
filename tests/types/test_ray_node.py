@@ -5,14 +5,16 @@ import pytest
 import ray
 from hypothesis import strategies as st
 from returns.contrib.hypothesis.containers import strategy_from_container
-from returns.contrib.hypothesis.laws import check_all_laws
 
 from rayfun.types import (
     RayObjectNode,
     RayFunctionNode,
     RayFinalFunctionNode,
     RayContext,
+    RayContextError,
 )
+
+# from returns.contrib.hypothesis.laws import check_all_laws
 
 st.register_type_strategy(
     RayContext,
@@ -67,4 +69,75 @@ def test_final_function_node_apply_exception(ray_start):
         remote_add_2.apply_arg(remote_1)
 
 
-check_all_laws(RayContext, settings_kwargs={"max_examples": 500})
+def identity_func(x):
+    return x
+
+
+def test_raycontext_functor_identity_law(ray_start):
+    ray_value = RayContext.from_value(10).map(identity_func)
+    id_value = identity_func(10)
+    ray_store_value = ray_value.wrapped.reduce().execute()
+    assert ray.get(ray_store_value.wrapped) == id_value
+
+
+def test_raycontext_functor_composition_law(ray_start):
+    def f(x):
+        return x + 1
+
+    def g(x):
+        return x * 2
+
+    ray_value = RayContext.from_value(10).map(f).map(g)
+    ray_store_value = ray_value.wrapped.reduce().execute()
+    assert ray.get(ray_store_value.wrapped) == g(f(10))
+
+
+def test_raycontext_applicative_identity_law(ray_start):
+    ray_value = RayContext.from_value(10)
+    ray_identity = RayContext.from_value(identity_func)
+    ray_store_value = ray_value.apply(ray_identity).wrapped.reduce().execute()
+    assert ray.get(ray_store_value.wrapped) == identity_func(10)
+
+
+def test_raycontext_applicative_homomorphism_law(ray_start):
+    def f(x):
+        return x + 1
+
+    ray_value = RayContext.from_value(10)
+    ray_f = RayContext.from_value(f)
+    ray_store_value = ray_value.apply(ray_f).wrapped.reduce().execute()
+    assert ray.get(ray_store_value.wrapped) == f(10)
+
+
+def test_raycontext_applicative_associative_law(ray_start):
+    def func(x):
+        return x + 1
+
+    raw_value = 10
+
+    ray_value = RayContext.from_value(raw_value)
+    ray_f = RayContext.from_value(func)
+
+    raw_to_func = ray_value.apply(ray_f)
+
+    def func2(f):
+        return ray.get(f.remote(raw_value))
+
+    ray_f2 = RayContext.from_value(func2)
+
+    func_to_raw = ray_f.apply(ray_f2)
+
+    ray_store_1 = raw_to_func.wrapped.reduce().execute()
+    ray_store_2 = func_to_raw.wrapped.reduce().execute()
+    assert ray.get(ray_store_1.wrapped) == ray.get(ray_store_2.wrapped)
+
+
+def test_raycontext_wrong_application(ray_start):
+    with pytest.raises(RayContextError):
+        ray_value_1 = RayContext.from_value(10)
+        ray_value_2 = RayContext.from_value(20)
+        ray_value_1.apply(ray_value_2)
+
+
+# TODO: Though ideal, the hypothesis classes cannot be serialized by Ray.
+# check_all_laws(RayContext, settings_kwargs={"max_examples": 500})
