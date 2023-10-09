@@ -1,11 +1,11 @@
 # Functional Wrapper over ray framework
 
-This is a functional wrapper over [ray](https://ray.io) framework using [`returns`](https://returns.readthedocs.io) package. The returns package provides an idiomatic way of writing type classes such as Functor, Applicative, and Monad. The `ray` framework allows embedding a value as an [ObjectRef](https://docs.ray.io/en/latest/ray-core/objects.html) and a function as a [RemoteFunction](https://docs.ray.io/en/latest/ray-core/api/doc/ray.remote.html). This package combines it together in a [RayContext].
+This is a functional wrapper over [ray](https://ray.io) framework using [`returns`](https://returns.readthedocs.io) package. The returns package provides an idiomatic way of writing type classes such as Functor, Applicative, and Monad. The `ray` framework allows embedding a value as an [ObjectRef](https://docs.ray.io/en/latest/ray-core/objects.html) and a function as a [RemoteFunction](https://docs.ray.io/en/latest/ray-core/api/doc/ray.remote.html). This package combines it together in a `RayContext`.
 
 ```python
 from rayfun.types import RayContext, RayNode
 
-int_ref: RayNode[int] = RayContext.from_value(1)
+int_ref: RayContext[int] = RayContext.from_value(1)
 ```
 
 You can also wrap a function in the `RayContext` and call it remotely.
@@ -17,7 +17,7 @@ from typing import Callable
 def add(a: int, b: int) -> int:
     return a + b
 
-add_ref: RayNode[Callable[[int, int], int]] = RayContext.from_function(add)
+add_ref: RayContext[Callable[[int, int], int]] = RayContext.from_value(add)
 ```
 
 ## Supported Type Classes
@@ -32,6 +32,8 @@ int_ref: RayContext[int] = RayContext.from_value(1)
 
 int_ref.map(lambda x: x + 1) # RayNode[int] = RayContext.from_value(2)
 ```
+
+Internally, `map` uses `Applicative` to `apply` the function by first lifting it to `RayContext` by using `RayContext.from_value`. Thus `ray_value.apply(RayContext.from_value(function))` and `ray_value.map(function)` are equivalent.
 
 ### Applicative
 
