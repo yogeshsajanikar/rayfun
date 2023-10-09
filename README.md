@@ -28,7 +28,7 @@ The `RayContext` is defined as a [Kind1["RayContext", _T]](https://sobolevn.me/2
 ```python
 from rayfun.types import RayContext, RayNode
 
-int_ref: RayNode[int] = RayContext.from_value(1)
+int_ref: RayContext[int] = RayContext.from_value(1)
 
 int_ref.map(lambda x: x + 1) # RayNode[int] = RayContext.from_value(2)
 ```
@@ -43,10 +43,10 @@ from typing import Callable
 
 add = lambda x, y: x + y
 
-int_ref: RayNode[int] = RayContext.from_value(1)
-int_ref_1: RayNode[int] = RayContext.from_value(2)
+int_ref: RayContext[int] = RayContext.from_value(1)
+int_ref_1: RayContext[int] = RayContext.from_value(2)
 
-add_ref: RayNode[Callable[[int, int], int]] = RayContext.from_value(add)
+add_ref: RayContext[Callable[[int, int], int]] = RayContext.from_value(add)
 
 int_ref_1.apply(int_ref.apply(add_ref)) # RayNode[int] = RayContext.from_value(2)
 ```
@@ -62,8 +62,8 @@ from typing import Callable
 import ray
 
 add = lambda x, y: x + y
-int_ref: RayNode[int] = RayContext.from_value(1)
-int_ref_1: RayNode[int] = RayContext.from_value(2)
+int_ref: RayContext[int] = RayContext.from_value(1)
+int_ref_1: RayContext[int] = RayContext.from_value(2)
 
 add_ref: RayNode[Callable[[int, int], int]] = RayContext.from_value(add)
 lazy_node = int_ref_1.apply(int_ref.apply(add_ref)) # ObjectRef[int] = ObjectRef(2)
@@ -88,12 +88,12 @@ from typing import Callable
 import ray
 
 add = lambda x, y: x + y
-int_ref_1: RayNode[int] = RayContext.from_value(1)
-int_ref_2: RayNode[int] = RayContext.from_value(2)
-int_ref_3: RayNode[int] = RayContext.from_value(3)
-int_ref_4: RayNode[int] = RayContext.from_value(4)
+int_ref_1: RayContext[int] = RayContext.from_value(1)
+int_ref_2: RayContext[int] = RayContext.from_value(2)
+int_ref_3: RayContext[int] = RayContext.from_value(3)
+int_ref_4: RayContext[int] = RayContext.from_value(4)
 
-add_ref: RayNode[Callable[[int, int], int]] = RayContext.from_value(add)
+add_ref: RayContext[Callable[[int, int], int]] = RayContext.from_value(add)
 
 intermediate_node_1 = int_ref_1.apply(int_ref_2.apply(add_ref))
 intermediate_node_2 = int_ref_3.apply(int_ref_4.apply(add_ref))
