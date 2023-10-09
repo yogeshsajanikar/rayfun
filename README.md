@@ -1,4 +1,5 @@
 # Functional Wrapper over ray framework
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![GitHub version](https://badge.fury.io/gh/yogeshsajanikar%2Frayfun.svg)](https://badge.fury.io/gh/yogeshsajanikar%2Frayfun)
 
 This is a functional wrapper over [ray](https://ray.io) framework using [`returns`](https://returns.readthedocs.io) package. The returns package provides an idiomatic way of writing type classes such as Functor, Applicative, and Monad. The `ray` framework allows embedding a value as an [ObjectRef](https://docs.ray.io/en/latest/ray-core/objects.html) and a function as a [RemoteFunction](https://docs.ray.io/en/latest/ray-core/api/doc/ray.remote.html). This package combines it together in a `RayContext`.
 
