@@ -49,13 +49,11 @@ def test_ray_function_node(ray_start):
 
 
 def test_final_function_node_exception(ray_start):
-    with pytest.raises(TypeError):
-        remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(
-            add
-        )
-        remote_1 = RayObjectNode[int](ray.put(1))
-        remote_add_1 = remote_add.apply_arg(remote_1)
-        remote_add_1.execute()
+    remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(add)
+    remote_1 = RayObjectNode[int](ray.put(1))
+    remote_add_1 = remote_add.apply_arg(remote_1)
+    remote_add_2 = remote_add_1.execute()
+    assert isinstance(remote_add_2, RayFunctionNode)
 
 
 def test_final_function_node_apply_exception(ray_start):

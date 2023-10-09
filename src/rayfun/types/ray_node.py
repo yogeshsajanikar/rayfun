@@ -9,8 +9,9 @@ from ray import ObjectRef
 from ray.dag import FunctionNode
 from ray.remote_function import RemoteFunction
 from returns.interfaces.applicative import Applicative1
+from returns.interfaces.container import Container1
 from returns.primitives.container import BaseContainer
-from returns.primitives.hkt import SupportsKind1, Kind1
+from returns.primitives.hkt import SupportsKind1, Kind1, dekind
 
 from rayfun.utils import Binder
 
@@ -166,7 +167,7 @@ class RayFunctionNode(RayNode[_T]):
             return RayFinalFunctionNode(node)
 
         # If the function is not callable, raise an error
-        raise TypeError("The function is not callable")
+        return self
 
     def reduce(self) -> RayNode[_T]:
         if self.binder.callable():
@@ -216,7 +217,7 @@ class RayContextError(Exception):
         super().__init__(message)
 
 
-class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Applicative1[_T]):
+class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Container1[_T]):
     """
     The base class for all RayContext types.
     """
@@ -289,3 +290,18 @@ class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Applicative1[_T
         # check if the value is a callable
         f_app = RayContext.from_value(function)
         return self.apply(f_app)
+
+    def bind(
+        self, function: Callable[[_T], Kind1["RayContext", _U]]
+    ) -> "RayContext[_U]":
+        """
+        Binds a function over a container.
+
+        `bind` gives a stronger sequencing than `apply`. It forces the `self` to be evaluated before passing
+        it to the function.
+        """
+        # check if the value is a callable
+        reduced = self.wrapped.reduce()
+        executed = reduced.execute()
+        unwrapped: _T = cast(_T, ray.get(executed.wrapped))
+        return dekind(function(unwrapped))

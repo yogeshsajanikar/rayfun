@@ -9,6 +9,8 @@ from .ray_node import (
     RayNode,
 )
 
+from .ray_list import parallel_combine, from_iterable, parallel_reduce
+
 __all__ = [
     "RayObjectNode",
     "RayFinalFunctionNode",
@@ -16,4 +18,7 @@ __all__ = [
     "RayContext",
     "RayContextError",
     "RayNode",
+    "parallel_combine",
+    "from_iterable",
+    "parallel_reduce",
 ]
