@@ -305,3 +305,16 @@ class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Container1[_T])
         executed = reduced.execute()
         unwrapped: _T = cast(_T, ray.get(executed.wrapped))
         return dekind(function(unwrapped))
+
+    def run(self) -> RayNode[_T]:
+        """
+        Runs the computation.
+        """
+        reduced = self.wrapped.reduce()
+        return reduced.execute()
+
+    def plot(self, file_name: str) -> None:
+        """
+        Plots the computation.
+        """
+        ray.dag.vis_utils.plot(self.wrapped.wrapped, file_name)
