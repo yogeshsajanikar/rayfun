@@ -170,5 +170,39 @@ def test_raycontext_bind(ray_start):
     assert ray.get(ray_store_value.wrapped) == 11
 
 
+def add_1(x: int) -> int:
+    return x + 1
+
+
+def add_ints(x: int, y: int) -> int:
+    return x + y
+
+
+def test_complex_apply(ray_start):
+    r_10 = RayContext.from_value(10)
+    r_add_1 = RayContext.from_value(add_1)
+    r_add = RayContext.from_value(add_ints)
+    r_11 = r_10.apply(r_add_1)
+    r_12_f = r_11.apply(r_add)
+    r_22 = r_11.apply(r_12_f)
+    # r_22.plot("r_22.svg")
+    result = r_22.run()
+    assert ray.get(result.wrapped) == 22
+
+
+def test_complex_apply_1(ray_start):
+    r_10 = RayContext.from_value(10)
+    r_10_1 = RayContext.from_value(10)
+    r_add_1 = RayContext.from_value(add_1)
+    r_add = RayContext.from_value(add_ints)
+    r_11 = r_10.apply(r_add_1)
+    r_11_1 = r_10_1.apply(r_add_1)
+    r_12_f = r_11.apply(r_add)
+    r_22 = r_11_1.apply(r_12_f)
+    # r_22.plot("r_22_1.svg")
+    result = r_22.run()
+    assert ray.get(result.wrapped) == 22
+
+
 # TODO: Though ideal, the hypothesis classes cannot be serialized by Ray.
 # check_all_laws(RayContext, settings_kwargs={"max_examples": 500})
