@@ -47,31 +47,33 @@ def _parallel_combine(
 
 
 def parallel_combine(
-    input: List[RayContext[_T]], combine: Callable[[_T, _T], _T]
+    inputs: List[RayContext[_T]],
+    initial: RayContext[_T],
+    combiner: RayContext[Callable[[_T, _T], _T]],
 ) -> RayContext[_T]:
     """
     Combines the given list in parallel.
     """
-    if len(input) < 0:
-        raise ValueError("input must be non-empty")
+    if len(inputs) <= 0:
+        return initial
 
-    if len(input) == 1:
-        return input[0]
-
-    else:
-        combiner = RayContext.from_value(combine)
-        return _parallel_combine(input, combiner)
+    result = _parallel_combine(inputs, combiner)
+    return _apply_combiner(result, initial, combiner)
 
 
 def parallel_reduce(
     iterable: Iterable[RayContext[_T]],
-    function: Callable[[_T], _U],
-    combine: Callable[[_U, _U], _U],
+    initial: RayContext[_T],
+    mapper: RayContext[Callable[[_T], _U]],
+    combine: RayContext[Callable[[_U, _U], _U]],
 ) -> RayContext[_U]:
     """
     Reduces the iterable in parallel.
+
+    The `mapper` function is applied to each element of the iterable, and the `combine` function is used to combine the results.
+    The `initial` value is used as the initial value for the reduction.
     """
     map_list: List[RayContext[_U]] = [
-        mapped for mapped in map(lambda x: x.map(function), iterable)
+        mapped for mapped in map(lambda x: x.apply(mapper), iterable)
     ]
-    return parallel_combine(map_list, combine)
+    return parallel_combine(map_list, initial, combine)

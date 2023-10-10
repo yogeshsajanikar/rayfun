@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "rayfun"
-version = "0.1.4"
+version = "0.1.5"
 description = "A functional wrapper over ray"
 authors = ["Yogesh Sajanikar <yogesh_sajanikar@yahoo.com>"]
 readme = "README.md"

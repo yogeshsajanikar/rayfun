@@ -148,7 +148,11 @@ def identity(a):
     return a
 
 ray_inputs = from_iterable(inputs)
-actual = parallel_reduce(ray_inputs, identity, reducer)
+actual = parallel_reduce(
+    ray_inputs, 
+    RayContext.from_value(0), 
+    RayContext.from_value(identity), 
+    RayContext.from_value(reducer))
 
 actual.plot('dag2.png')
 result = actual.run() # ObjectRef[int] = ObjectRef(45)
@@ -160,6 +164,7 @@ The above computation will produce a DAG that looks like this.
 ![DAG2](dag2.png)
 
 It clearly shows the lazy computation represented by DAG. Combining the `Applicative`, `Functor` and `Monad` it is thus possible to declaratively define a computation and then run it in the cluster.
+
 
 
 

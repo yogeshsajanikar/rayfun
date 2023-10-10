@@ -48,6 +48,30 @@ def test_ray_function_node(ray_start):
     assert ray.get(answer_ref._inner_value) == 3
 
 
+def test_ray_function_node_reduce_with_error(ray_start):
+    with pytest.raises(RayContextError):
+        remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(
+            add
+        )
+        remote_1 = RayObjectNode[int](ray.put(1))
+        remote_add_1 = remote_add.apply_arg(remote_1)
+        remote_add_1.reduce()
+
+
+def test_ray_function_node_reduce(ray_start):
+    def add_10(x: int) -> int:
+        return x + 10
+
+    remote_add = RayFunctionNode[Callable[[int], int]].from_remote_function(
+        ray.remote(add_10)
+    )
+    remote_1 = RayObjectNode[int](ray.put(1))
+    remote_add_1 = remote_add.apply_arg(remote_1)
+    result_node = remote_add_1.reduce()
+    assert isinstance(result_node, RayObjectNode)
+    assert ray.get(result_node._inner_value) == 11
+
+
 def test_final_function_node_exception(ray_start):
     remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(add)
     remote_1 = RayObjectNode[int](ray.put(1))
@@ -135,6 +159,15 @@ def test_raycontext_wrong_application(ray_start):
         ray_value_1 = RayContext.from_value(10)
         ray_value_2 = RayContext.from_value(20)
         ray_value_1.apply(ray_value_2)
+
+
+def test_raycontext_bind(ray_start):
+    def f(x):
+        return RayContext.from_value(x + 1)
+
+    ray_value = RayContext.from_value(10)
+    ray_store_value = ray_value.bind(f).run()
+    assert ray.get(ray_store_value.wrapped) == 11
 
 
 # TODO: Though ideal, the hypothesis classes cannot be serialized by Ray.
