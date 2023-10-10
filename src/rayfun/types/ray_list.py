@@ -63,7 +63,7 @@ def parallel_combine(
 
 def parallel_reduce(
     iterable: Iterable[RayContext[_T]],
-    initial: RayContext[_T],
+    initial: RayContext[_U],
     mapper: RayContext[Callable[[_T], _U]],
     combine: RayContext[Callable[[_U, _U], _U]],
 ) -> RayContext[_U]:
