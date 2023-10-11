@@ -356,3 +356,55 @@ def ray_context_conditional(
 
     result: RayContext[RayContext[_U]] = cond.apply(ray_conditional)
     return flatten(result)
+
+
+@overload
+def ray_context_apply(
+    func: RayContext[Callable[[_T0], _U]], arg1: RayContext[_T0]
+) -> RayContext[_U]:
+    ...
+
+
+@overload
+def ray_context_apply(
+    func: RayContext[Callable[[_T0, _T1], _U]],
+    arg1: RayContext[_T0],
+    arg2: RayContext[_T1],
+) -> RayContext[_U]:
+    ...
+
+
+@overload
+def ray_context_apply(
+    func: RayContext[Callable[[_T0, _T1, _T2], _U]],
+    arg1: RayContext[_T0],
+    arg2: RayContext[_T1],
+    arg3: RayContext[_T2],
+) -> RayContext[_U]:
+    ...
+
+
+@overload
+def ray_context_apply(
+    func: RayContext[Callable[[_T0, _T1, _T2, _T3], _U]],
+    arg1: RayContext[_T0],
+    arg2: RayContext[_T1],
+    arg3: RayContext[_T2],
+    arg4: RayContext[_T3],
+) -> RayContext[_U]:
+    ...
+
+
+def ray_context_apply(func, *args):
+    """
+    Applies a function to a list of arguments.
+
+    :param func: Function to apply
+    :param args: List of arguments
+    :return: Applied function
+    """
+    a_func = func
+    for arg in args:
+        a_func = arg.apply(a_func)
+
+    return a_func

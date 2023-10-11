@@ -12,6 +12,7 @@ from rayfun.types import (
     RayFinalFunctionNode,
     RayContext,
     RayContextError,
+    ray_context_apply,
     ray_context_conditional,
 )
 
@@ -198,8 +199,9 @@ def test_complex_apply_1(ray_start):
     r_add = RayContext.from_value(add_ints)
     r_11 = r_10.apply(r_add_1)
     r_11_1 = r_10_1.apply(r_add_1)
-    r_12_f = r_11.apply(r_add)
-    r_22 = r_11_1.apply(r_12_f)
+    r_22 = ray_context_apply(r_add, r_11, r_11_1)
+    # r_12_f = r_11.apply(r_add)
+    # r_22 = r_11_1.apply(r_12_f)
     # r_22.plot("r_22_1.svg")
     result = r_22.run()
     assert ray.get(result.wrapped) == 22
