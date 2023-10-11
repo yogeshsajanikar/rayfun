@@ -12,6 +12,7 @@ from rayfun.types import (
     RayFinalFunctionNode,
     RayContext,
     RayContextError,
+    ray_context_conditional,
 )
 
 # from returns.contrib.hypothesis.laws import check_all_laws
@@ -202,6 +203,21 @@ def test_complex_apply_1(ray_start):
     # r_22.plot("r_22_1.svg")
     result = r_22.run()
     assert ray.get(result.wrapped) == 22
+
+
+# Check the conditional binding
+def test_conditional(ray_start):
+    r_10 = RayContext.from_value(10)
+    r_11 = RayContext.from_value(11)
+
+    r_true = RayContext.from_value(True)
+    r_false = RayContext.from_value(False)
+
+    result_10 = ray_context_conditional(r_true, r_10, r_11).run()
+    result_11 = ray_context_conditional(r_false, r_10, r_11).run()
+
+    assert ray.get(result_10.wrapped) == 10
+    assert ray.get(result_11.wrapped) == 11
 
 
 # TODO: Though ideal, the hypothesis classes cannot be serialized by Ray.

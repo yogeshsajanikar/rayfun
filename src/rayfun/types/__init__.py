@@ -7,6 +7,8 @@ from .ray_node import (
     RayContext,
     RayContextError,
     RayNode,
+    ray_context_conditional,
+    flatten,
 )
 
 from .ray_list import parallel_combine, from_iterable, parallel_reduce
@@ -21,4 +23,6 @@ __all__ = [
     "parallel_combine",
     "from_iterable",
     "parallel_reduce",
+    "ray_context_conditional",
+    "flatten",
 ]

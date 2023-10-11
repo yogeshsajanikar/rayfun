@@ -318,3 +318,41 @@ class RayContext(BaseContainer, SupportsKind1["RayContext", _T], Container1[_T])
         Plots the computation.
         """
         ray.dag.vis_utils.plot(self.wrapped.wrapped, file_name)
+
+
+def flatten(context: RayContext[RayContext[_U]]) -> RayContext[_U]:
+    """
+    Flatten a nested context.
+
+    :param context: Nested context
+    :return: Flattened context
+    """
+    first_run: RayNode[RayContext[_U]] = context.run()
+    second_run: RayContext[_U] = ray.get(first_run.wrapped)
+    return second_run
+
+
+def ray_context_conditional(
+    cond: RayContext[bool], true_st: RayContext[_U], false_st: RayContext[_U]
+) -> RayContext[_U]:
+    """
+    Conditional execution
+
+    Validates the condition, and executes the true or false statement based on the condition.
+
+    :param cond: Condition
+    :param true_st: True statement
+    :param false_st: False statement
+    :return: Conditional execution
+
+    """
+
+    def _conditional_internal(flag: bool) -> RayContext[_U]:
+        if flag:
+            return true_st
+        return false_st
+
+    ray_conditional = RayContext.from_value(_conditional_internal)
+
+    result: RayContext[RayContext[_U]] = cond.apply(ray_conditional)
+    return flatten(result)
