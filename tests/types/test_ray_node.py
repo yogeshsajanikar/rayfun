@@ -36,15 +36,18 @@ def add(a: int, b: int) -> int:
     return a + b
 
 
+remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(add)
+ray_add = RayContext(remote_add)
+
+
 def test_ray_function_node(ray_start):
-    remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(add)
     remote_1 = RayObjectNode[int](ray.put(1))
     remote_2 = RayObjectNode[int](ray.put(2))
     remote_add_1 = remote_add.apply_arg(remote_1)
     remote_add_2 = remote_add_1.apply_arg(remote_2)
 
     f_node = remote_add_2.execute()
-    assert isinstance(f_node, RayFinalFunctionNode)
+    # assert isinstance(f_node, RayFinalFunctionNode)
     answer_ref = f_node.execute()
     assert isinstance(answer_ref, RayObjectNode)
     assert ray.get(answer_ref._inner_value) == 3
@@ -52,9 +55,6 @@ def test_ray_function_node(ray_start):
 
 def test_ray_function_node_reduce_with_error(ray_start):
     with pytest.raises(RayContextError):
-        remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(
-            add
-        )
         remote_1 = RayObjectNode[int](ray.put(1))
         remote_add_1 = remote_add.apply_arg(remote_1)
         remote_add_1.reduce()
@@ -64,18 +64,17 @@ def test_ray_function_node_reduce(ray_start):
     def add_10(x: int) -> int:
         return x + 10
 
-    remote_add = RayFunctionNode[Callable[[int], int]].from_remote_function(
+    remote_add_10 = RayFunctionNode[Callable[[int], int]].from_remote_function(
         ray.remote(add_10)
     )
     remote_1 = RayObjectNode[int](ray.put(1))
-    remote_add_1 = remote_add.apply_arg(remote_1)
+    remote_add_1 = remote_add_10.apply_arg(remote_1)
     result_node = remote_add_1.reduce()
     assert isinstance(result_node, RayObjectNode)
     assert ray.get(result_node._inner_value) == 11
 
 
 def test_final_function_node_exception(ray_start):
-    remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(add)
     remote_1 = RayObjectNode[int](ray.put(1))
     remote_add_1 = remote_add.apply_arg(remote_1)
     remote_add_2 = remote_add_1.execute()
@@ -84,9 +83,6 @@ def test_final_function_node_exception(ray_start):
 
 def test_final_function_node_apply_exception(ray_start):
     with pytest.raises(TypeError):
-        remote_add = RayFunctionNode[Callable[[int, int], int]].from_remote_function(
-            add
-        )
         remote_1 = RayObjectNode[int](ray.put(1))
         remote_add_1 = remote_add.apply_arg(remote_1)
         remote_add_2 = remote_add_1.apply_arg(remote_1)
@@ -215,8 +211,8 @@ def test_conditional(ray_start):
     r_true = RayContext.from_value(True)
     r_false = RayContext.from_value(False)
 
-    result_10 = ray_context_conditional(r_true, r_10, r_11).run()
-    result_11 = ray_context_conditional(r_false, r_10, r_11).run()
+    result_10 = ray_context_conditional(r_true, lambda: r_10, lambda: r_11).run()
+    result_11 = ray_context_conditional(r_false, lambda: r_10, lambda: r_11).run()
 
     assert ray.get(result_10.wrapped) == 10
     assert ray.get(result_11.wrapped) == 11

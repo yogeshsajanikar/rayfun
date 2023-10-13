@@ -164,7 +164,8 @@ class RayFunctionNode(RayNode[_T]):
             func_node: RemoteFunction = self.inner_func
             # bind the arguments to the function
             node = func_node.bind(*args)
-            return RayFinalFunctionNode(node)
+            final_node: RayNode[_T] = RayFinalFunctionNode(node)
+            return final_node.execute()
 
         # If the function is not callable, raise an error
         return self
@@ -333,7 +334,9 @@ def flatten(context: RayContext[RayContext[_U]]) -> RayContext[_U]:
 
 
 def ray_context_conditional(
-    cond: RayContext[bool], true_st: RayContext[_U], false_st: RayContext[_U]
+    cond: RayContext[bool],
+    true_st: Callable[[], RayContext[_U]],
+    false_st: Callable[[], RayContext[_U]],
 ) -> RayContext[_U]:
     """
     Conditional execution
@@ -349,8 +352,8 @@ def ray_context_conditional(
 
     def _conditional_internal(flag: bool) -> RayContext[_U]:
         if flag:
-            return true_st
-        return false_st
+            return true_st()
+        return false_st()
 
     ray_conditional = RayContext.from_value(_conditional_internal)
 
